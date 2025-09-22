@@ -1,6 +1,7 @@
 import ffmpeg from "fluent-ffmpeg";
 import { promises as fs } from "fs";
 import path from "path";
+import { PassThrough } from "stream";
 import { TrackMetadata } from "../types/index.js";
 import { AUDIO_PROCESSING } from "./analysis/constants.js";
 
@@ -70,13 +71,35 @@ export class AudioProcessor {
    * Extract audio data for analysis
    */
   async extractAudioData(filePath: string): Promise<Float32Array> {
-    // This is a simplified version - in a real implementation,
-    // you'd want to use a proper audio decoding library
     return new Promise((resolve, reject) => {
-      // For now, we'll return a placeholder
-      // In a real implementation, you'd decode the audio file
-      // and return the actual audio samples
-      resolve(new Float32Array(0));
+      const audioData: number[] = [];
+      const passThrough = new PassThrough();
+
+      ffmpeg(filePath)
+        .audioChannels(1) // Convert to mono
+        .audioFrequency(44100) // 44.1kHz sample rate
+        .format("s16le") // 16-bit signed little-endian PCM
+        .on("error", (err) => {
+          console.error("FFmpeg error:", err);
+          reject(err);
+        })
+        .on("end", () => {
+          // Convert 16-bit PCM to Float32Array
+          const floatData = new Float32Array(audioData.length);
+          for (let i = 0; i < audioData.length; i++) {
+            floatData[i] = audioData[i] / 32768.0; // Normalize to [-1, 1]
+          }
+          resolve(floatData);
+        })
+        .stream(passThrough);
+
+      passThrough.on("data", (chunk: Buffer) => {
+        // Convert 16-bit PCM data to numbers
+        for (let i = 0; i < chunk.length; i += 2) {
+          const sample = chunk.readInt16LE(i);
+          audioData.push(sample);
+        }
+      });
     });
   }
 

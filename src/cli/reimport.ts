@@ -45,17 +45,27 @@ program
         console.log(chalk.blue("  Key:"), track.key);
         console.log(chalk.blue("  Beatgrid points:"), track.beatgrid.length);
         console.log(chalk.blue("  Structure:"));
-        console.log(chalk.gray("    Verses:"), track.structure.verses.length);
-        console.log(
-          chalk.gray("    Choruses:"),
-          track.structure.choruses.length
-        );
-        console.log(chalk.gray("    Bridges:"), track.structure.bridges.length);
-        console.log(
-          chalk.gray("    Breakdowns:"),
-          track.structure.breakdowns.length
-        );
-        console.log(chalk.gray("    Drops:"), track.structure.drops.length);
+        console.log(chalk.gray("    Parts:"), track.structure.parts.length);
+
+        // Show parts details
+        if (track.structure.parts.length > 0) {
+          console.log(chalk.blue("  Parts:"));
+          track.structure.parts.forEach((part) => {
+            const startTime = `${Math.floor(part.start / 60)}:${(
+              part.start % 60
+            )
+              .toFixed(1)
+              .padStart(4, "0")}`;
+            const endTime = `${Math.floor(part.end / 60)}:${(part.end % 60)
+              .toFixed(1)
+              .padStart(4, "0")}`;
+            console.log(
+              chalk.gray(`    Part ${part.number}:`),
+              `${startTime}-${endTime}`,
+              chalk.cyan(`(${part.description})`)
+            );
+          });
+        }
         console.log(chalk.blue("  Loops:"), track.loops.length);
       } else {
         // Analyze all tracks

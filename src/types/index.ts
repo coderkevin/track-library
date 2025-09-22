@@ -29,27 +29,15 @@ export interface BeatGridPoint {
 }
 
 export interface SongStructure {
-  intro?: TimeSegment;
-  verses: TimeSegment[];
-  choruses: TimeSegment[];
-  bridges: TimeSegment[];
-  outro?: TimeSegment;
-  breakdowns: TimeSegment[];
-  drops: TimeSegment[];
+  parts: Part[];
 }
 
-export interface TimeSegment {
+export interface Part {
   start: number; // in seconds
   end: number; // in seconds
   confidence: number;
-  type:
-    | "intro"
-    | "verse"
-    | "chorus"
-    | "bridge"
-    | "outro"
-    | "breakdown"
-    | "drop";
+  number: number; // 1, 2, 3, etc.
+  description?: string; // Optional human-readable description
 }
 
 export interface Loop {

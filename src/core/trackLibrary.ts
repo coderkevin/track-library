@@ -97,11 +97,7 @@ export class TrackLibrary {
       key: "C", // Default value
       beatgrid: [],
       structure: {
-        verses: [],
-        choruses: [],
-        bridges: [],
-        breakdowns: [],
-        drops: [],
+        parts: [],
       },
       loops: [],
       createdAt: new Date(),

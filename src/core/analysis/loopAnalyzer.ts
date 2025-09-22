@@ -22,22 +22,22 @@ export class LoopAnalyzer {
   ): Promise<Loop[]> {
     const loops: Loop[] = [];
 
-    // Find loops in different sections
-    const sections = [
-      ...structure.verses,
-      ...structure.choruses,
-      ...structure.bridges,
-      ...structure.breakdowns,
-    ];
+    // Find loops in different parts
+    const parts = structure.parts.map((part) => ({
+      start: part.start,
+      end: part.end,
+      confidence: part.confidence,
+      type: part.description || "part",
+    }));
 
-    for (const section of sections) {
-      const sectionLoops = await this.findLoopsInSection(
+    for (const part of parts) {
+      const partLoops = await this.findLoopsInSection(
         audioData,
         sampleRate,
-        section,
+        part,
         bpm
       );
-      loops.push(...sectionLoops);
+      loops.push(...partLoops);
     }
 
     // Find custom loops (user-defined interesting sections)

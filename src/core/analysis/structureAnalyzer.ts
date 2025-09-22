@@ -1,5 +1,6 @@
-import { SongStructure, TimeSegment } from "../../types/index.js";
+import { SongStructure, Part } from "../../types/index.js";
 import { STRUCTURE_ANALYSIS } from "./constants.js";
+import FFT from "fft.js";
 
 export class StructureAnalyzer {
   private static instance: StructureAnalyzer;
@@ -29,15 +30,17 @@ export class StructureAnalyzer {
       sampleRate
     );
 
-    const segments = this.segmentAudio(
+    // Detect major structural parts
+    const parts = this.detectParts(
       energy,
       spectralCentroid,
       zeroCrossingRate,
       duration
     );
-    const structure = this.classifySegments(segments, energy);
 
-    return structure;
+    return {
+      parts: parts,
+    };
   }
 
   private calculateEnergy(
@@ -77,7 +80,7 @@ export class StructureAnalyzer {
 
     for (let i = 0; i < audioData.length - windowSize; i += hopSize) {
       const window = audioData.slice(i, i + windowSize);
-      const fft = this.simpleFFT(window);
+      const fft = this.fastFFT(window);
 
       let numerator = 0;
       let denominator = 0;
@@ -88,7 +91,7 @@ export class StructureAnalyzer {
         denominator += magnitude;
       }
 
-      centroid.push(denominator > 0 ? numerator / denominator : 0);
+      centroid.push(denominator > 0 ? numerator / denominator / fft.length : 0);
     }
 
     return centroid;
@@ -119,193 +122,230 @@ export class StructureAnalyzer {
     return zcr;
   }
 
-  private segmentAudio(
+  private fastFFT(input: Float32Array): Float32Array {
+    // Use fft.js for high-performance FFT computation
+    const N = input.length;
+
+    // fft.js requires power-of-2 sizes, so we pad if necessary
+    const paddedSize = Math.pow(2, Math.ceil(Math.log2(N)));
+    const paddedInput = new Float32Array(paddedSize);
+    paddedInput.set(input);
+
+    // Create FFT instance and compute
+    const fft = new FFT(paddedSize);
+    const fftResult = fft.createComplexArray();
+    fft.realTransform(fftResult, paddedInput);
+
+    // Convert to magnitude spectrum
+    const output = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const real = fftResult[i * 2];
+      const imag = fftResult[i * 2 + 1];
+      output[i] = Math.sqrt(real * real + imag * imag);
+    }
+
+    return output;
+  }
+
+  /**
+   * Detect major structural parts of the song
+   */
+  private detectParts(
     energy: number[],
     spectralCentroid: number[],
     zcr: number[],
     duration: number
-  ): TimeSegment[] {
-    const segments: TimeSegment[] = [];
+  ): Part[] {
+    const parts: Part[] = [];
     const windowDuration = STRUCTURE_ANALYSIS.HOP_SIZE_SECONDS;
-    const minSegmentDuration = STRUCTURE_ANALYSIS.MIN_SEGMENT_DURATION_SECONDS;
-    const minSegmentFrames = Math.floor(minSegmentDuration / windowDuration);
 
-    let currentStart = 0;
-    let currentType = "intro";
+    // Calculate smoothed features for more stable detection
+    const smoothedEnergy = this.smoothArray(
+      energy,
+      STRUCTURE_ANALYSIS.SMOOTHING_WINDOW
+    );
+    const smoothedCentroid = this.smoothArray(
+      spectralCentroid,
+      STRUCTURE_ANALYSIS.SMOOTHING_WINDOW
+    );
+    const smoothedZcr = this.smoothArray(
+      zcr,
+      STRUCTURE_ANALYSIS.SMOOTHING_WINDOW
+    );
 
-    for (let i = 1; i < energy.length; i++) {
-      const change = this.calculateChange(energy, spectralCentroid, zcr, i);
+    // Find significant change points
+    const changePoints = this.findSignificantChanges(
+      smoothedEnergy,
+      smoothedCentroid,
+      smoothedZcr
+    );
 
+    // Convert change points to time-based parts
+    let currentTime = 0;
+    let partNumber = 1;
+
+    for (const changePoint of changePoints) {
+      const changeTime = changePoint.index * windowDuration;
+
+      // Only create part if it's long enough
       if (
-        change > STRUCTURE_ANALYSIS.CHANGE_THRESHOLD &&
-        i - currentStart > minSegmentFrames
+        changeTime - currentTime >=
+        STRUCTURE_ANALYSIS.MIN_PART_DURATION_SECONDS
       ) {
-        // End current segment
-        segments.push({
-          start: currentStart * windowDuration,
-          end: i * windowDuration,
-          confidence: 0.8,
-          type: currentType as any,
+        parts.push({
+          start: currentTime,
+          end: changeTime,
+          confidence: changePoint.confidence,
+          number: partNumber++,
+          description: this.describePart(parts.length, changeTime, duration),
         });
-
-        // Start new segment
-        currentStart = i;
-        currentType = this.classifySegmentType(
-          energy,
-          spectralCentroid,
-          zcr,
-          i
-        );
+        currentTime = changeTime;
       }
     }
 
-    // Add final segment
-    if (currentStart < energy.length) {
-      segments.push({
-        start: currentStart * windowDuration,
+    // Add final part if there's remaining time
+    if (currentTime < duration - 5) {
+      parts.push({
+        start: currentTime,
         end: duration,
         confidence: 0.8,
-        type: currentType as any,
+        number: partNumber,
+        description: this.describePart(parts.length, duration, duration),
       });
     }
 
-    return segments;
+    return parts;
   }
 
-  private calculateChange(
+  /**
+   * Smooth an array using a moving average
+   */
+  private smoothArray(array: number[], windowSize: number): number[] {
+    const smoothed: number[] = [];
+    const halfWindow = Math.floor(windowSize / 2);
+
+    for (let i = 0; i < array.length; i++) {
+      let sum = 0;
+      let count = 0;
+
+      for (
+        let j = Math.max(0, i - halfWindow);
+        j <= Math.min(array.length - 1, i + halfWindow);
+        j++
+      ) {
+        sum += array[j];
+        count++;
+      }
+
+      smoothed.push(sum / count);
+    }
+
+    return smoothed;
+  }
+
+  /**
+   * Find significant change points in the audio features
+   */
+  private findSignificantChanges(
+    energy: number[],
+    spectralCentroid: number[],
+    zcr: number[]
+  ): Array<{ index: number; confidence: number }> {
+    const changePoints: Array<{ index: number; confidence: number }> = [];
+    const minDistance = Math.floor(
+      STRUCTURE_ANALYSIS.MIN_PART_DURATION_SECONDS /
+        STRUCTURE_ANALYSIS.HOP_SIZE_SECONDS
+    );
+
+    for (let i = minDistance; i < energy.length - minDistance; i++) {
+      const change = this.calculateSignificantChange(
+        energy,
+        spectralCentroid,
+        zcr,
+        i
+      );
+
+      if (change > STRUCTURE_ANALYSIS.CHANGE_THRESHOLD) {
+        // High threshold for major structural changes
+        // Check if this change point is far enough from the last one
+        const lastChange = changePoints[changePoints.length - 1];
+        if (!lastChange || i - lastChange.index > minDistance) {
+          changePoints.push({
+            index: i,
+            confidence: Math.min(0.95, change),
+          });
+        }
+      }
+    }
+
+    return changePoints;
+  }
+
+  /**
+   * Calculate significant change score for a given point
+   */
+  private calculateSignificantChange(
     energy: number[],
     spectralCentroid: number[],
     zcr: number[],
     index: number
   ): number {
-    const window = STRUCTURE_ANALYSIS.LOOKBACK_WINDOW;
-    if (index < window) return 0;
+    const window = STRUCTURE_ANALYSIS.ANALYSIS_WINDOW;
+    if (index < window || index >= energy.length - window) return 0;
 
-    const currentEnergy =
-      energy.slice(index - window, index).reduce((a, b) => a + b) / window;
+    // Calculate energy change
     const prevEnergy =
-      energy.slice(index - window * 2, index - window).reduce((a, b) => a + b) /
-      window;
-
-    const currentCentroid =
-      spectralCentroid.slice(index - window, index).reduce((a, b) => a + b) /
-      window;
-    const prevCentroid =
-      spectralCentroid
-        .slice(index - window * 2, index - window)
-        .reduce((a, b) => a + b) / window;
-
-    const energyChange =
-      Math.abs(currentEnergy - prevEnergy) / (prevEnergy + 0.001);
-    const centroidChange =
-      Math.abs(currentCentroid - prevCentroid) / (prevCentroid + 0.001);
-
-    return (energyChange + centroidChange) / 2;
-  }
-
-  private classifySegmentType(
-    energy: number[],
-    spectralCentroid: number[],
-    zcr: number[],
-    index: number
-  ): string {
-    const window = STRUCTURE_ANALYSIS.LOOKBACK_WINDOW;
-    const avgEnergy =
       energy.slice(index - window, index).reduce((a, b) => a + b) / window;
-    const avgCentroid =
+    const nextEnergy =
+      energy.slice(index, index + window).reduce((a, b) => a + b) / window;
+    const energyChange =
+      Math.abs(nextEnergy - prevEnergy) / (prevEnergy + 0.001);
+
+    // Calculate spectral centroid change
+    const prevCentroid =
       spectralCentroid.slice(index - window, index).reduce((a, b) => a + b) /
       window;
-    const avgZcr =
+    const nextCentroid =
+      spectralCentroid.slice(index, index + window).reduce((a, b) => a + b) /
+      window;
+    const centroidChange =
+      Math.abs(nextCentroid - prevCentroid) / (prevCentroid + 0.001);
+
+    // Calculate ZCR change
+    const prevZcr =
       zcr.slice(index - window, index).reduce((a, b) => a + b) / window;
+    const nextZcr =
+      zcr.slice(index, index + window).reduce((a, b) => a + b) / window;
+    const zcrChange = Math.abs(nextZcr - prevZcr) / (prevZcr + 0.001);
 
-    if (avgEnergy < STRUCTURE_ANALYSIS.ENERGY_THRESHOLD_LOW) return "breakdown";
-    if (
-      avgEnergy > STRUCTURE_ANALYSIS.ENERGY_THRESHOLD_HIGH &&
-      avgCentroid > STRUCTURE_ANALYSIS.CENTROID_THRESHOLD
-    )
-      return "drop";
-    if (avgZcr > STRUCTURE_ANALYSIS.ZCR_THRESHOLD) return "verse";
-    if (avgEnergy > 0.2) return "chorus";
-    return "bridge";
+    // Weighted combination of all changes
+    return energyChange * 0.5 + centroidChange * 0.3 + zcrChange * 0.2;
   }
 
-  private classifySegments(
-    segments: TimeSegment[],
-    energy: number[]
-  ): SongStructure {
-    const structure: SongStructure = {
-      verses: [],
-      choruses: [],
-      bridges: [],
-      breakdowns: [],
-      drops: [],
-    };
+  /**
+   * Provide a human-readable description for a part
+   */
+  private describePart(
+    partIndex: number,
+    currentTime: number,
+    totalDuration: number
+  ): string {
+    const timePercent = (currentTime / totalDuration) * 100;
 
-    for (const segment of segments) {
-      switch (segment.type) {
-        case "verse":
-          structure.verses.push(segment);
-          break;
-        case "chorus":
-          structure.choruses.push(segment);
-          break;
-        case "bridge":
-          structure.bridges.push(segment);
-          break;
-        case "breakdown":
-          structure.breakdowns.push(segment);
-          break;
-        case "drop":
-          structure.drops.push(segment);
-          break;
-      }
+    if (partIndex === 0) {
+      return "Intro";
+    } else if (timePercent > 85) {
+      return "Outro";
+    } else if (timePercent < 20) {
+      return "Early Section";
+    } else if (timePercent < 40) {
+      return "Build Section";
+    } else if (timePercent < 60) {
+      return "Main Section";
+    } else if (timePercent < 80) {
+      return "Late Section";
+    } else {
+      return "Final Section";
     }
-
-    // Identify intro and outro
-    if (segments.length > 0) {
-      const firstSegment = segments[0];
-      if (firstSegment.type === "verse" || firstSegment.type === "breakdown") {
-        structure.intro = {
-          start: 0,
-          end: firstSegment.start,
-          confidence: 0.7,
-          type: "intro",
-        };
-      }
-
-      const lastSegment = segments[segments.length - 1];
-      if (lastSegment.type === "verse" || lastSegment.type === "breakdown") {
-        structure.outro = {
-          start: lastSegment.end,
-          end: lastSegment.end + STRUCTURE_ANALYSIS.OUTRO_DURATION_SECONDS,
-          confidence: 0.7,
-          type: "outro",
-        };
-      }
-    }
-
-    return structure;
-  }
-
-  private simpleFFT(input: Float32Array): Float32Array {
-    // Simplified FFT implementation
-    // In a real implementation, you'd use a proper FFT library
-    const N = input.length;
-    const output = new Float32Array(N);
-
-    for (let k = 0; k < N; k++) {
-      let real = 0;
-      let imag = 0;
-
-      for (let n = 0; n < N; n++) {
-        const angle = (-2 * Math.PI * k * n) / N;
-        real += input[n] * Math.cos(angle);
-        imag += input[n] * Math.sin(angle);
-      }
-
-      output[k] = Math.sqrt(real * real + imag * imag);
-    }
-
-    return output;
   }
 }

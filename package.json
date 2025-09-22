@@ -5,10 +5,12 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
+    "check": "tsc --noEmit",
     "import": "tsx src/cli/import.ts",
     "reimport": "tsx src/cli/reimport.ts",
     "list": "tsx src/cli/list.ts",
-    "version": "tsx src/cli/version.ts"
+    "version": "tsx src/cli/version.ts",
+    "analyze": "tsx src/cli/reimport.ts"
   },
   "keywords": [
     "audio",
@@ -29,6 +31,7 @@
   "dependencies": {
     "chalk": "^5.3.0",
     "commander": "^11.0.0",
+    "fft.js": "^4.0.4",
     "fluent-ffmpeg": "^2.1.2",
     "inquirer": "^9.2.0",
     "music-metadata": "^7.14.0",

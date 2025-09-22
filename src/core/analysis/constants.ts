@@ -17,14 +17,10 @@ export const KEY_ANALYSIS = {
 export const STRUCTURE_ANALYSIS = {
   WINDOW_SIZE_SECONDS: 0.1, // 100ms windows
   HOP_SIZE_SECONDS: 0.05, // 50ms hop
-  MIN_SEGMENT_DURATION_SECONDS: 8,
-  CHANGE_THRESHOLD: 0.3,
-  LOOKBACK_WINDOW: 10,
-  ENERGY_THRESHOLD_LOW: 0.1,
-  ENERGY_THRESHOLD_HIGH: 0.3,
-  CENTROID_THRESHOLD: 0.5,
-  ZCR_THRESHOLD: 0.1,
-  OUTRO_DURATION_SECONDS: 10,
+  MIN_PART_DURATION_SECONDS: 8, // Minimum duration for a part
+  CHANGE_THRESHOLD: 0.6, // High threshold for major structural changes
+  SMOOTHING_WINDOW: 5, // Window size for smoothing features
+  ANALYSIS_WINDOW: 20, // Window size for change analysis
 } as const;
 
 export const LOOP_ANALYSIS = {
