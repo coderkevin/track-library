@@ -4,6 +4,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import { TrackLibrary } from "../core/trackLibrary.js";
+import { findTrackByIdentifier } from "../utils/trackFinder.js";
 
 const program = new Command();
 
@@ -12,20 +13,26 @@ program
   .description("Re-analyze tracks in the library")
   .version("1.0.0")
   .argument(
-    "[id]",
-    "Track ID to analyze (if not provided, analyzes all tracks)"
+    "[identifier]",
+    "Track to analyze (title, artist, or partial match) - if not provided, analyzes all tracks"
   )
-  .action(async (id, options) => {
+  .action(async (identifier, options) => {
     try {
       const library = TrackLibrary.getInstance();
 
       // Always analyze everything
 
-      if (id) {
+      if (identifier) {
         // Analyze specific track
-        const track = await library.getTrackById(id);
+        const track = await findTrackByIdentifier(library, identifier);
         if (!track) {
-          console.log(chalk.red(`Track with ID '${id}' not found.`));
+          console.log(chalk.red(`Track '${identifier}' not found.`));
+          console.log(
+            chalk.yellow("Try using a partial title or artist name.")
+          );
+          console.log(
+            chalk.gray("Use 'npm run list' to see available tracks.")
+          );
           return;
         }
 

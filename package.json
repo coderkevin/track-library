@@ -9,6 +9,7 @@
     "import": "tsx src/cli/import.ts",
     "reimport": "tsx src/cli/reimport.ts",
     "list": "tsx src/cli/list.ts",
+    "play": "tsx src/cli/play.ts",
     "version": "tsx src/cli/version.ts",
     "analyze": "tsx src/cli/reimport.ts"
   },
