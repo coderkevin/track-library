@@ -10,8 +10,6 @@ A TypeScript Node.js application for managing and analyzing audio tracks for alg
 - **BPM Analysis**: Detect tempo and tempo changes throughout tracks
 - **Key Detection**: Identify musical key of tracks
 - **Beatgrid Analysis**: Map tempo changes for complex tracks
-- **Song Structure Analysis**: Identify verses, choruses, bridges, breakdowns, and drops
-- **Loop Detection**: Find potential loops for strudel sessions
 - **CLI Interface**: Simple command-line interface for all operations
 
 ## Installation
@@ -43,7 +41,6 @@ Options:
 - `--bpm <range>`: Filter by BPM range (e.g., "120-140")
 - `--key <key>`: Filter by musical key
 - `--duration <range>`: Filter by duration range (e.g., "60-300")
-- `--loops`: Only show tracks with loops
 - `--artist <artist>`: Filter by artist name (partial match)
 - `--search <term>`: Search in title, artist, album, or genre (partial match)
 - `--json`: Output as JSON
@@ -57,8 +54,8 @@ npm run list -- --artist "Aphex Twin"
 # Search for tracks containing "ambient" in title, artist, album, or genre
 npm run list -- --search "ambient"
 
-# Find electronic tracks with loops between 120-140 BPM
-npm run list -- --search "electronic" --bpm "120-140" --loops
+# Find electronic tracks between 120-140 BPM
+npm run list -- --search "electronic" --bpm "120-140"
 
 # Export all tracks as JSON
 npm run list -- --json
@@ -92,7 +89,6 @@ src/
 │       ├── constants.ts
 │       ├── bpmAnalyzer.ts
 │       ├── keyAnalyzer.ts
-│       ├── structureAnalyzer.ts
 │       └── loopAnalyzer.ts
 ├── types/              # TypeScript type definitions
 │   └── index.ts
@@ -133,15 +129,7 @@ Each track is stored with a JSON metadata file containing:
       "confidence": 0.95
     }
   ],
-  "structure": {
-    "intro": { "start": 0, "end": 16, "confidence": 0.8, "type": "intro" },
-    "verses": [...],
-    "choruses": [...],
-    "bridges": [...],
-    "breakdowns": [...],
-    "drops": [...]
-  },
-  "loops": [
+  "beatgrid": [
     {
       "start": 32.0,
       "end": 64.0,

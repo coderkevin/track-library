@@ -14,27 +14,6 @@ export const KEY_ANALYSIS = {
   DEFAULT_KEY: "C",
 } as const;
 
-export const STRUCTURE_ANALYSIS = {
-  WINDOW_SIZE_SECONDS: 0.1, // 100ms windows
-  HOP_SIZE_SECONDS: 0.05, // 50ms hop
-  MIN_PART_DURATION_SECONDS: 8, // Minimum duration for a part
-  CHANGE_THRESHOLD: 0.6, // High threshold for major structural changes
-  SMOOTHING_WINDOW: 5, // Window size for smoothing features
-  ANALYSIS_WINDOW: 20, // Window size for change analysis
-} as const;
-
-export const LOOP_ANALYSIS = {
-  MIN_LOOP_SCORE: 0.6,
-  WINDOW_SIZE_SECONDS: 4,
-  HOP_SIZE_SECONDS: 1,
-  ENERGY_THRESHOLD: 0.2,
-  CENTROID_THRESHOLD: 0.3,
-  RHYTHMIC_WINDOW_SECONDS: 0.5,
-  HARMONIC_WINDOW_SECONDS: 0.1,
-  BEATS_PER_BAR: 4,
-  LOOP_HOP_SECONDS: 0.5,
-} as const;
-
 export const AUDIO_PROCESSING = {
   DEFAULT_SAMPLE_RATE: 44100,
   DEFAULT_BIT_DEPTH: 16,

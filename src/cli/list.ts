@@ -13,7 +13,6 @@ program
   .option("-b, --bpm <range>", 'Filter by BPM range (e.g., "120-140")')
   .option("-k, --key <key>", "Filter by musical key")
   .option("-d, --duration <range>", 'Filter by duration range (e.g., "60-300")')
-  .option("-l, --loops", "Only show tracks with loops")
   .option("-a, --artist <artist>", "Filter by artist name (partial match)")
   .option(
     "-s, --search <term>",
@@ -39,10 +38,6 @@ program
       if (options.duration) {
         const [min, max] = options.duration.split("-").map(Number);
         criteria.duration = { min, max };
-      }
-
-      if (options.loops) {
-        criteria.hasLoops = true;
       }
 
       if (options.artist) {
@@ -80,7 +75,6 @@ program
         console.log(chalk.gray(`   Duration: ${track.duration.toFixed(1)}s`));
         console.log(chalk.gray(`   BPM: ${track.bpm}`));
         console.log(chalk.gray(`   Key: ${track.key}`));
-        console.log(chalk.gray(`   Loops: ${track.loops.length}`));
         console.log(
           chalk.gray(`   Created: ${track.createdAt.toLocaleDateString()}`)
         );

@@ -4,8 +4,6 @@ import { TrackMetadata } from "../types/index.js";
 import { AudioProcessor } from "./audioProcessor.js";
 import { BpmAnalyzer } from "./analysis/bpmAnalyzer.js";
 import { KeyAnalyzer } from "./analysis/keyAnalyzer.js";
-import { StructureAnalyzer } from "./analysis/structureAnalyzer.js";
-import { LoopAnalyzer } from "./analysis/loopAnalyzer.js";
 import { getVersion } from "../utils/version.js";
 import { extractMusicMetadata } from "../utils/metadataExtractor.js";
 
@@ -14,8 +12,6 @@ export class TrackLibrary {
   private audioProcessor: AudioProcessor;
   private bpmAnalyzer: BpmAnalyzer;
   private keyAnalyzer: KeyAnalyzer;
-  private structureAnalyzer: StructureAnalyzer;
-  private loopAnalyzer: LoopAnalyzer;
   private libraryPath: string;
 
   constructor(libraryPath: string = "./tracks") {
@@ -23,8 +19,6 @@ export class TrackLibrary {
     this.audioProcessor = AudioProcessor.getInstance();
     this.bpmAnalyzer = BpmAnalyzer.getInstance();
     this.keyAnalyzer = KeyAnalyzer.getInstance();
-    this.structureAnalyzer = StructureAnalyzer.getInstance();
-    this.loopAnalyzer = LoopAnalyzer.getInstance();
   }
 
   public static getInstance(libraryPath?: string): TrackLibrary {
@@ -96,10 +90,6 @@ export class TrackLibrary {
       bpm: 120, // Default value
       key: "C", // Default value
       beatgrid: [],
-      structure: {
-        parts: [],
-      },
-      loops: [],
       createdAt: new Date(),
       updatedAt: new Date(),
       version: getVersion(),
@@ -142,19 +132,6 @@ export class TrackLibrary {
     metadata.beatgrid = await this.bpmAnalyzer.analyzeBeatgrid(
       audioData,
       metadata.sampleRate
-    );
-
-    metadata.structure = await this.structureAnalyzer.analyzeStructure(
-      audioData,
-      metadata.sampleRate,
-      metadata.duration
-    );
-
-    metadata.loops = await this.loopAnalyzer.analyzeLoops(
-      audioData,
-      metadata.sampleRate,
-      metadata.structure,
-      metadata.bpm
     );
 
     metadata.updatedAt = new Date();
@@ -222,7 +199,6 @@ export class TrackLibrary {
     bpm?: { min?: number; max?: number };
     key?: string;
     duration?: { min?: number; max?: number };
-    hasLoops?: boolean;
     artist?: string;
     search?: string;
   }): Promise<TrackMetadata[]> {
@@ -242,8 +218,6 @@ export class TrackLibrary {
         if (criteria.duration.max && track.duration > criteria.duration.max)
           return false;
       }
-
-      if (criteria.hasLoops && track.loops.length === 0) return false;
 
       if (criteria.artist) {
         if (
