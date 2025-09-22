@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Compiled JavaScript files (using tsx for direct TS execution)
+*.js
+
+# Environment variables
+.env
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Audio files and track library
+tracks/
+*.wav
+
+# Logs
+*.log
