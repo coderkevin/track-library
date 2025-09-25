@@ -24,3 +24,4 @@ tracks/
 
 # Logs
 *.log
+apps/desktop/dist-electron/main/index.js.map
