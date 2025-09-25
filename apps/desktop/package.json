@@ -19,9 +19,7 @@
     "pretest": "vite build --mode=test",
     "test": "vitest run"
   },
-  "dependencies": {
-    "electron-updater": "^6.3.9"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@playwright/test": "^1.48.2",
     "@types/react": "^18.3.12",
