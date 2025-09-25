@@ -1,5 +1,21 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import {
+  AppBar,
+  Box,
+  Container,
+  CssBaseline,
+  Toolbar,
+  Typography,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Paper,
+  IconButton,
+} from "@mui/material";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 type Track = {
   id: string;
@@ -37,56 +53,61 @@ function App() {
   }, []);
 
   return (
-    <div className="App" style={{ padding: 16 }}>
-      <h1>Track Library</h1>
-      {loading && <p>Loading…</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {!loading && !error && (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #444" }}>
-                Title
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #444" }}>
-                Artist
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #444" }}>
-                BPM
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #444" }}>
-                Key
-              </th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #444" }}>
-                Preview
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {tracks.map((t) => (
-              <tr key={t.id}>
-                <td>{t.title || "—"}</td>
-                <td>{t.artist || "—"}</td>
-                <td>{t.bpm ?? "—"}</td>
-                <td>{t.key || "—"}</td>
-                <td>
-                  {t.fileUrl ? (
-                    <audio
-                      src={t.fileUrl}
-                      controls
-                      preload="none"
-                      style={{ width: 200 }}
-                    />
-                  ) : (
-                    "—"
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      <CssBaseline />
+      <AppBar position="static" elevation={0} sx={{ bgcolor: "#111827" }}>
+        <Toolbar>
+          <Typography variant="h6" component="div">
+            Track Library
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      <Container
+        maxWidth="lg"
+        sx={{ mt: 3, mb: 3, flex: 1, display: "flex", flexDirection: "column" }}
+      >
+        {loading && <Typography>Loading…</Typography>}
+        {error && <Typography color="error">{error}</Typography>}
+        {!loading && !error && (
+          <Paper variant="outlined" sx={{ width: "100%", overflow: "hidden" }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Title</TableCell>
+                  <TableCell>Artist</TableCell>
+                  <TableCell>BPM</TableCell>
+                  <TableCell>Key</TableCell>
+                  <TableCell>Preview</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {tracks.map((t) => (
+                  <TableRow key={t.id} hover>
+                    <TableCell>{t.title || "—"}</TableCell>
+                    <TableCell>{t.artist || "—"}</TableCell>
+                    <TableCell>{t.bpm ?? "—"}</TableCell>
+                    <TableCell>{t.key || "—"}</TableCell>
+                    <TableCell>
+                      {t.fileUrl ? (
+                        <audio
+                          src={t.fileUrl}
+                          controls
+                          preload="none"
+                          style={{ width: 220 }}
+                        />
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Paper>
+        )}
+      </Container>
+    </Box>
   );
 }
 
