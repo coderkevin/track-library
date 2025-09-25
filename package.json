@@ -4,6 +4,10 @@
   "description": "Audio track library for algorave DJing with strudel",
   "main": "dist/index.js",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "check": "tsc --noEmit"
   },

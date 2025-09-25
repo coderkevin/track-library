@@ -127,7 +127,7 @@ ipcMain.handle("tracks:list", async () => {
     // Resolve project root based on app root (two levels up from apps/desktop)
     const appRoot = path.join(process.env.APP_ROOT as string);
     const projectRoot = path.resolve(appRoot, "..", "..");
-    const tracksDir = path.join(projectRoot, "tracks");
+    const tracksDir = path.join(projectRoot, "data", "tracks");
     const files = await fs.readdir(tracksDir);
     const jsonFiles = files.filter((name) =>
       name.toLowerCase().endsWith(".json")
@@ -138,16 +138,10 @@ ipcMain.handle("tracks:list", async () => {
       try {
         const content = await fs.readFile(full, "utf-8");
         const data = JSON.parse(content);
-        // Attach absolute and fileUrl for WAV if present
-        const wavPath: string | undefined = data?.wavPath;
-        let wavAbsolutePath: string | undefined;
-        let fileUrl: string | undefined;
-        if (typeof wavPath === "string") {
-          wavAbsolutePath = path.isAbsolute(wavPath)
-            ? wavPath
-            : path.join(projectRoot, wavPath);
-          fileUrl = pathToFileURL(wavAbsolutePath).href;
-        }
+        // Always resolve WAV by basename next to the JSON in data/tracks
+        const base = path.parse(name).name;
+        const wavAbsolutePath = path.join(tracksDir, `${base}.wav`);
+        const fileUrl = pathToFileURL(wavAbsolutePath).href;
         return { ok: true, data: { ...data, wavAbsolutePath, fileUrl } };
       } catch (err) {
         return { ok: false, error: String(err) };
