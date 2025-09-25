@@ -15,5 +15,6 @@ interface Window {
         wavPath?: string;
       }[]
     >;
+    add(): Promise<boolean>;
   };
 }

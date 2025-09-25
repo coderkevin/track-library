@@ -3,6 +3,7 @@ import "./App.css";
 import {
   AppBar,
   Box,
+  Button,
   Container,
   CssBaseline,
   Toolbar,
@@ -14,8 +15,12 @@ import {
   TableBody,
   Paper,
   IconButton,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import AddIcon from "@mui/icons-material/Add";
 
 type Track = {
   id: string;
@@ -32,6 +37,8 @@ function App() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [snack, setSnack] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -52,6 +59,33 @@ function App() {
     };
   }, []);
 
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      const list = await window.tracksAPI.list();
+      setTracks(list);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdd = async () => {
+    try {
+      setAdding(true);
+      const ok = await window.tracksAPI.add();
+      if (ok) {
+        await refresh();
+        setSnack("Track added");
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <CssBaseline />
@@ -60,6 +94,15 @@ function App() {
           <Typography variant="h6" component="div">
             Track Library
           </Typography>
+          <Box sx={{ flex: 1 }} />
+          <Button
+            color="inherit"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+            disabled={adding}
+          >
+            {adding ? "Adding…" : "Add Track"}
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -107,6 +150,21 @@ function App() {
           </Paper>
         )}
       </Container>
+
+      <Snackbar
+        open={!!snack}
+        autoHideDuration={2500}
+        onClose={() => setSnack(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setSnack(null)}
+          sx={{ width: "100%" }}
+        >
+          {snack}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

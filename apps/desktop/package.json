@@ -13,13 +13,16 @@
   },
   "type": "module",
   "scripts": {
+    "predev": "npm --workspace @tracklib/core run build",
     "dev": "vite",
+    "prebuild": "npm --workspace @tracklib/core run build",
     "build": "tsc && vite build && electron-builder",
     "preview": "vite preview",
     "pretest": "vite build --mode=test",
     "test": "vitest run"
   },
   "dependencies": {
+    "@tracklib/core": "1.0.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.2",

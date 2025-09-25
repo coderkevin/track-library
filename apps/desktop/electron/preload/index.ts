@@ -40,6 +40,9 @@ contextBridge.exposeInMainWorld("tracksAPI", {
   list: async (): Promise<TrackSummary[]> => {
     return await ipcRenderer.invoke("tracks:list");
   },
+  add: async (): Promise<boolean> => {
+    return await ipcRenderer.invoke("tracks:add");
+  },
 });
 
 // --------- Preload scripts loading ---------

@@ -1,8 +1,8 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
-import fs from "node:fs/promises";
+import { app, BrowserWindow, shell, ipcMain, dialog } from "electron";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import os from "node:os";
+import { TrackLibrary, TrackMetadata } from "@tracklib/core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -121,36 +121,59 @@ ipcMain.handle("open-win", (_, arg) => {
   }
 });
 
-// List track JSON files from the repository `tracks/` directory
+// List tracks using core library
 ipcMain.handle("tracks:list", async () => {
   try {
-    // Resolve project root based on app root (two levels up from apps/desktop)
-    const appRoot = path.join(process.env.APP_ROOT as string);
-    const projectRoot = path.resolve(appRoot, "..", "..");
-    const tracksDir = path.join(projectRoot, "data", "tracks");
-    const files = await fs.readdir(tracksDir);
-    const jsonFiles = files.filter((name) =>
-      name.toLowerCase().endsWith(".json")
-    );
-
-    const readPromises = jsonFiles.map(async (name) => {
-      const full = path.join(tracksDir, name);
-      try {
-        const content = await fs.readFile(full, "utf-8");
-        const data = JSON.parse(content);
-        // Always resolve WAV by basename next to the JSON in data/tracks
-        const base = path.parse(name).name;
-        const wavAbsolutePath = path.join(tracksDir, `${base}.wav`);
-        const fileUrl = pathToFileURL(wavAbsolutePath).href;
-        return { ok: true, data: { ...data, wavAbsolutePath, fileUrl } };
-      } catch (err) {
-        return { ok: false, error: String(err) };
-      }
+    const lib = getTrackLibrary();
+    const tracks: TrackMetadata[] = await lib.getAllTracks();
+    const libraryPath = getLibraryPath();
+    return tracks.map((t: TrackMetadata) => {
+      const wavPath = t.wavPath;
+      const wavAbsolutePath = path.isAbsolute(wavPath)
+        ? wavPath
+        : path.join(libraryPath, path.basename(wavPath));
+      const fileUrl = pathToFileURL(wavAbsolutePath).href;
+      return { ...t, wavAbsolutePath, fileUrl };
     });
-
-    const results = await Promise.all(readPromises);
-    return results.filter((r) => r.ok).map((r) => (r as any).data);
-  } catch (error) {
+  } catch {
     return [];
   }
 });
+
+// Add a new track using core library (handles MP3->WAV and metadata)
+ipcMain.handle("tracks:add", async () => {
+  try {
+    // Ask user to select an audio file
+    const result = await dialog.showOpenDialog(win!, {
+      title: "Add Track (MP3 or WAV)",
+      properties: ["openFile"],
+      filters: [{ name: "Audio", extensions: ["mp3", "MP3", "wav", "WAV"] }],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return false;
+    }
+
+    const selectedPath = result.filePaths[0];
+    const lib = getTrackLibrary();
+    await lib.importTrack(selectedPath);
+    return true;
+  } catch (error) {
+    console.error("tracks:add error", error);
+    return false;
+  }
+});
+
+// Helpers to get a singleton TrackLibrary instance bound to repo data/tracks
+let _trackLibrary: TrackLibrary | null = null;
+function getLibraryPath(): string {
+  const appRoot = path.join(process.env.APP_ROOT as string);
+  const projectRoot = path.resolve(appRoot, "..", "..");
+  return path.join(projectRoot, "data", "tracks");
+}
+function getTrackLibrary(): TrackLibrary {
+  if (!_trackLibrary) {
+    _trackLibrary = TrackLibrary.getInstance(getLibraryPath());
+  }
+  return _trackLibrary;
+}
