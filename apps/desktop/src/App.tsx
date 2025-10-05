@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import AddIcon from "@mui/icons-material/Add";
+import ReplayIcon from "@mui/icons-material/Replay";
 
 type Track = {
   id: string;
@@ -39,6 +40,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [snack, setSnack] = useState<string | null>(null);
+  const [rescanning, setRescanning] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +88,19 @@ function App() {
     }
   };
 
+  const handleRescan = async () => {
+    try {
+      setRescanning(true);
+      const result = await window.tracksAPI.rescan();
+      await refresh();
+      setSnack(`Rescanned ${result.updated}/${result.total} tracks`);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setRescanning(false);
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <CssBaseline />
@@ -95,6 +110,15 @@ function App() {
             Track Library
           </Typography>
           <Box sx={{ flex: 1 }} />
+          <Button
+            color="inherit"
+            startIcon={<ReplayIcon />}
+            onClick={handleRescan}
+            disabled={rescanning || loading || adding}
+            sx={{ mr: 1 }}
+          >
+            {rescanning ? "Rescanning…" : "Rescan"}
+          </Button>
           <Button
             color="inherit"
             startIcon={<AddIcon />}

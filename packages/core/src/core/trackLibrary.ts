@@ -185,6 +185,25 @@ export class TrackLibrary {
   }
 
   /**
+   * Rescan and re-analyze all tracks, updating their JSON metadata.
+   */
+  async rescanAllTracks(): Promise<{ total: number; updated: number }> {
+    const tracks = await this.getAllTracks();
+    let updated = 0;
+    for (const t of tracks) {
+      try {
+        await this.analyzeTrack(t);
+        const jsonPath = t.wavPath.replace(/\.wav$/i, ".json");
+        await this.saveTrackMetadata(t, jsonPath);
+        updated++;
+      } catch (err) {
+        // continue with next track
+      }
+    }
+    return { total: tracks.length, updated };
+  }
+
+  /**
    * Get track by ID
    */
   async getTrackById(trackId: string): Promise<TrackMetadata | null> {

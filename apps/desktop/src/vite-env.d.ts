@@ -16,5 +16,6 @@ interface Window {
       }[]
     >;
     add(): Promise<boolean>;
+    rescan(): Promise<{ total: number; updated: number }>;
   };
 }

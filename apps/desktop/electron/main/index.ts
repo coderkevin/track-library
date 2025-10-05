@@ -164,6 +164,18 @@ ipcMain.handle("tracks:add", async () => {
   }
 });
 
+// Rescan and re-analyze all tracks
+ipcMain.handle("tracks:rescan", async () => {
+  try {
+    const lib = getTrackLibrary();
+    const result = await lib.rescanAllTracks();
+    return result;
+  } catch (error) {
+    console.error("tracks:rescan error", error);
+    return { total: 0, updated: 0 };
+  }
+});
+
 // Helpers to get a singleton TrackLibrary instance bound to repo data/tracks
 let _trackLibrary: TrackLibrary | null = null;
 function getLibraryPath(): string {

@@ -43,6 +43,9 @@ contextBridge.exposeInMainWorld("tracksAPI", {
   add: async (): Promise<boolean> => {
     return await ipcRenderer.invoke("tracks:add");
   },
+  rescan: async (): Promise<{ total: number; updated: number }> => {
+    return await ipcRenderer.invoke("tracks:rescan");
+  },
 });
 
 // --------- Preload scripts loading ---------

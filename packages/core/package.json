@@ -26,6 +26,7 @@
   "dependencies": {
     "fft.js": "^4.0.4",
     "fluent-ffmpeg": "^2.1.2",
-    "music-metadata": "^7.14.0"
+    "music-metadata": "^7.14.0",
+    "essentia.js": "^0.1.0"
   }
 }
